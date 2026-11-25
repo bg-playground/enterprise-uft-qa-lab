@@ -15,7 +15,14 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install -r requirements.txt
-      - run: python -m unittest discover -s tests -v
+      - run: python run_evidence.py --suite tests --out artifacts/results/portable.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: portable-evidence-${{ matrix.os }}
+          path: |
+            artifacts/results/
+            artifacts/defects/
   browser:
     # Keep the browser runner compatible with pinned Playwright.
     runs-on: ubuntu-24.04
@@ -26,9 +33,11 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -r requirements.txt -r requirements-browser.txt
       - run: python -m playwright install --with-deps chromium
-      - run: python -m unittest discover -s browser-tests -v
+      - run: python run_evidence.py --suite browser-tests --out artifacts/results/browser.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: browser-evidence
-          path: artifacts/browser/
+          path: |
+            artifacts/browser/
+            artifacts/results/
