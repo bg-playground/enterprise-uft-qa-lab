@@ -1,0 +1,45 @@
+name: Portable lifecycle checks
+on: [push, pull_request]
+permissions:
+  contents: read
+env:
+  DOCUMENTFLOW_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt
+      - run: python run_evidence.py --suite tests --out artifacts/results/portable.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: portable-evidence-${{ matrix.os }}
+          path: |
+            artifacts/results/
+            artifacts/defects/
+  browser:
+    # Keep the browser runner compatible with pinned Playwright.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt -r requirements-browser.txt
+      - run: python -m playwright install --with-deps chromium
+      - run: python run_evidence.py --suite browser-tests --out artifacts/results/browser.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-evidence
+          path: |
+            artifacts/browser/
+            artifacts/results/

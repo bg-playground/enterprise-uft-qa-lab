@@ -1,0 +1,3 @@
+# Records management HTTP/UI candidate
+R8: local role-policy simulation. Viewer reads, manager classifies and sets/releases hold, disposition role disposes. Unknown/missing roles denied on policy APIs. Existing lifecycle endpoints remain unauthenticated. Caller-selected X-Lab-Role and dates are deliberate synthetic test controls, not authenticated authorization or a trusted clock. No production security claim.
+SIT-015 denial/no mutation; SIT-016 HTTP policy lifecycle and PDF removal; SIT-017 page availability and invalid inputs. Browser interaction and responsive visual acceptance remain pending. CI pending. No public hosting.

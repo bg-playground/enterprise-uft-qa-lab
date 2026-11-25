@@ -1,0 +1,4 @@
+case_id,document_id,title,expected_status
+SIT-005A,INV001,Invoice,archived
+SIT-005B,NOTICE002,Customer notice,archived
+SIT-005C,STAT003,Account statement,archived

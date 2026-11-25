@@ -1,0 +1,37 @@
+{
+  "run": 22,
+  "head": "dd0812267ca079aece96245edcc43fa6126e826e",
+  "checkout": "45221d1a419d54848663cc88fb8c8a21ca20cd8b",
+  "url": "https://github.com/bg-playground/enterprise-uft-qa-lab/actions/runs/45705824296",
+  "jobs": [
+    {
+      "name": "Linux",
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": 15063874209
+    },
+    {
+      "name": "Windows",
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": 15064992781
+    },
+    {
+      "name": "macOS",
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": 15064643427
+    },
+    {
+      "name": "Chromium",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": 15063624434
+    }
+  ],
+  "note": "Historical inspected snapshot, not live CI. Archive checksums, JSON summaries and portfolio screenshots inspected; traces not replayed. Native UFT not executed."
+}
