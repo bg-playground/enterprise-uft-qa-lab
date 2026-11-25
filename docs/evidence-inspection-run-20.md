@@ -1,0 +1,2 @@
+# Run 20 inspection
+All four downloaded ZIP SHA-256 values matched GitHub metadata. JSON summaries: 17 passed each portable OS, 3 browser, 54 total, 20 distinct methods by suite. All report PR head 3bc4032dc0eeea215f2511b2957668f45e4fb684 and checkout 68980e911ac5d20980ca7eeb1e70794dbbf53407. Screenshots 390/768/1440 visually reviewed: functional form, mobile table uses horizontal inner scroll, native controls rather than polished public styling. Trace files inventoried, not replayed. No native UFT claim.
