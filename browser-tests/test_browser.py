@@ -80,5 +80,52 @@ class BrowserSIT(unittest.TestCase):
         events = self.page.request.get(self.base+'/api/audit').json()
         self.assertEqual([e['event'] for e in events],['submitted','archived'])
 
+    def test_sit_019_records_workflow(self):
+        self.page.goto(self.base)
+        self.submit('WEB001','Synthetic Invoice')
+        self.archive('WEB001', self.page.get_by_role('button',name='Process'))
+        self.page.goto(self.base+'/records')
+        row=self.page.get_by_role('row').filter(has_text='WEB001')
+        expect(row).to_contain_text('archived')
+        self.page.get_by_label('Document ID').fill('WEB001')
+        status=self.page.get_by_role('status')
+        def action(name, code, response):
+            with self.page.expect_response(lambda r: '/api/policy/' in r.url and r.request.method=='POST') as pending:
+                self.page.get_by_role('button',name=name,exact=True).click()
+            self.assertEqual(pending.value.status,code)
+            expect(status).to_have_text(response)
+        def role(value):
+            with self.page.expect_response(lambda r: r.url.endswith('/api/policy/list')) as pending:
+                self.page.get_by_label('Simulated role').select_option(value)
+            self.assertEqual(pending.value.status,200)
+            expect(status).to_have_text('Success')
+        action('Classify',403,'403 simulated role denied')
+        role('manager')
+        action('Classify',200,'Success')
+        expect(row).to_contain_text('2026-01-31')
+        action('Set hold',200,'Success')
+        expect(row.get_by_role('cell').nth(4)).to_have_text('1')
+        role('disposition')
+        action('Dispose',409,'409 retention or legal hold prevents disposition')
+        role('manager')
+        action('Release hold',200,'Success')
+        expect(row.get_by_role('cell').nth(4)).to_have_text('0')
+        role('disposition')
+        self.page.get_by_label('Simulated disposition date').fill('2026-01-30')
+        action('Dispose',409,'409 retention or legal hold prevents disposition')
+        self.page.get_by_label('Simulated disposition date').fill('2026-01-31')
+        action('Dispose',200,'Success')
+        expect(row).to_contain_text('disposed')
+        self.assertEqual(self.page.request.get(self.base+'/api/pdf/WEB001').status,404)
+        self.page.get_by_label('Title search').fill('Invoice')
+        self.page.get_by_role('button',name='Search archived records').click()
+        expect(row).to_have_count(0)
+        self.page.get_by_role('button',name='Refresh records').click()
+        expect(row).to_contain_text('disposed')
+        for width in (390,768,1440):
+            self.page.set_viewport_size({'width':width,'height':900})
+            self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'))
+            self.page.screenshot(path=str(self.artifacts/f'records-{width}.png'),full_page=True)
+
 if __name__ == '__main__':
     unittest.main()

@@ -56,7 +56,7 @@ def handle_post(h,c):
         return h.reply(400,{'error':'invalid input or record state'})
 
 PAGE="""<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Records management | DocumentFlow</title>
-<style>body{font:16px system-ui;color:#193553;max-width:1000px;margin:30px auto;padding:16px}fieldset{border:1px solid #b6c4d4;border-radius:8px;margin:16px 0;padding:16px}label{display:inline-block;margin:6px}input,select,button{font:inherit;padding:8px;margin:4px}button{cursor:pointer}table{width:100%;border-collapse:collapse}td,th{padding:10px;border-bottom:1px solid #ddd;text-align:left}.scroll{overflow:auto}#result{white-space:pre-wrap}</style>
+<style>body{font:16px system-ui;color:#193553;max-width:1000px;margin:30px auto;padding:16px}fieldset{min-width:0;border:1px solid #b6c4d4;border-radius:8px;margin:16px 0;padding:16px}label{display:inline-block;margin:6px;max-width:calc(100% - 12px)}input,select,button{max-width:100%;box-sizing:border-box;font:inherit;padding:8px;margin:4px}button{cursor:pointer}table{width:100%;border-collapse:collapse}td,th{padding:10px;border-bottom:1px solid #ddd;text-align:left}.scroll{overflow:auto}#result{white-space:pre-wrap}</style>
 <a href="/">DocumentFlow / Document processing</a><h1>Records management lab</h1><p><strong>Synthetic local exercise:</strong> roles are simulated, not authenticated identities. Dates are controlled test inputs. Never use real records.</p>
 <label>Simulated role <select id="role"><option>viewer</option><option>manager</option><option>disposition</option></select></label>
 <button id="refresh">Refresh records</button>
