@@ -26,13 +26,15 @@ class PortfolioBrowserSIT(unittest.TestCase):
         self.artifacts.mkdir(parents=True,exist_ok=True)
         self.page.goto(self.base)
     def test_sit_021_evidence_center(self):
-        expect(self.page.locator('#provenance')).to_contain_text('Run #20')
-        expect(self.page.locator('#metrics strong').first).to_have_text('54')
+        expect(self.page.locator('#provenance')).to_contain_text('Run #22')
+        expect(self.page.locator('#metrics strong').first).to_have_text('57')
         expect(self.page.locator('#jobs tr')).to_have_count(4)
         for width in (390,768,1440):
             self.page.set_viewport_size({'width':width,'height':900})
             self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'))
             self.page.screenshot(path=str(self.artifacts/f'portfolio-{width}.png'),full_page=True)
+        for name in ('Linux','Windows','macOS','Chromium'):
+            expect(self.page.get_by_role('link',name=name+' evidence archive')).to_have_count(1)
         self.page.route('**/evidence.json',lambda route:route.abort())
         self.page.reload()
         expect(self.page.locator('#provenance')).to_contain_text('unavailable')
@@ -71,3 +73,27 @@ class PortfolioBrowserSIT(unittest.TestCase):
         p.get_by_label('Inject incorrect body title').uncheck()
         p.get_by_role('button',name='Compare document content').click()
         expect(p.locator('#defect-result')).to_contain_text('PASS')
+    def test_sit_024_malformed_snapshot_and_keyboard(self):
+        import json
+        p=self.page
+        fixture=json.loads((Path(__file__).resolve().parents[1]/'portfolio/evidence.json').read_text(encoding='utf-8'))
+        for key,value in [('url','javascript:alert(1)'),('jobs',[]),('head','invalid')]:
+            broken=dict(fixture)
+            broken[key]=value
+            p.route('**/evidence.json',lambda route:route.fulfill(json=broken))
+            p.reload()
+            expect(p.locator('#provenance')).to_contain_text('unavailable')
+            expect(p.locator('#metrics strong')).to_have_count(0)
+            expect(p.locator('#jobs tr')).to_have_count(0)
+            p.unroute('**/evidence.json')
+        p.reload()
+        expect(p.locator('#metrics strong').first).to_have_text('57')
+        p.keyboard.press('Tab')
+        expect(p.get_by_role('link',name='Skip to content')).to_be_focused()
+        p.keyboard.press('Enter')
+        expect(p.locator('#main')).to_be_focused()
+        p.get_by_label('Inject incorrect body title').focus()
+        p.keyboard.press('Space')
+        p.get_by_role('button',name='Compare document content').focus()
+        p.keyboard.press('Enter')
+        expect(p.locator('#defect-result')).to_contain_text('FAIL')
