@@ -6,8 +6,11 @@ Python 3.12 recommended. Run `python -m pip install -r requirements.txt`, then `
 
 Run `python -m unittest discover -s tests -v`. See [quality plan](docs/quality-plan.md). Service and loopback HTTP integration tests are included; see [integration acceptance](docs/integration-acceptance.md). Browser tests and an isolated locator drift exercise are included; native UFT execution remains pending. See [browser and XPath lab](docs/browser-xpath-lab.md) for execution and evidence. Cross-platform CI is configured; inspect actual workflow results.
 
+## Records management lab
+Open /records after archiving a synthetic document. Select a simulated viewer, manager or disposition role. Classify, set/release legal hold, and test disposal dates. The role header is intentionally caller-controlled: this is authorization-policy demonstration, not authentication or a security boundary. Never expose this server publicly.
+
 ## Native UFT track
 `automation/uft/launch.vbs` is an unverified AOM starter, not a native UFT test or execution result. On a compatible licensed Windows machine, create and save a GUI test in UFT IDE, configure Web add-in and supported browser, then run the adapter with the test and results directory as two arguments. Inspect native results and record engine/version/environment. No native execution, object repository, or verified XPath support is claimed.
 
 ## Boundaries
-This prototype binds loopback only and lacks authentication, comprehensive concurrency validation, retention, indexing, physical printing and production hardening. Do not expose it publicly as-is. Keep data and results synthetic.
+This prototype binds loopback only and lacks production authentication, comprehensive concurrency validation, enterprise indexing, physical printing and production hardening. Do not expose it publicly as-is. Keep data and results synthetic.

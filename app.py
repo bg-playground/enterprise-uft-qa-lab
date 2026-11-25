@@ -4,6 +4,7 @@ from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from reportlab.pdfgen import canvas
 import record_policy
+import records_web
 DB=os.environ.get('DOCUMENTFLOW_DB','documentflow.sqlite')
 def connect():
     c=sqlite3.connect(DB); c.row_factory=sqlite3.Row
@@ -37,6 +38,10 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(body,bytes): body=json.dumps(body).encode() if kind=='application/json' else body.encode()
         self.send_response(status); self.send_header('Content-Type',kind); self.send_header('Content-Length',str(len(body))); self.end_headers(); self.wfile.write(body)
     def do_GET(self):
+        if self.path=='/records': return self.reply(200,records_web.PAGE,'text/html; charset=utf-8')
+        if self.path.startswith('/api/policy/'):
+            with closing(connect()) as c:
+                return records_web.handle_get(self,c)
         with closing(connect()) as c:
             if self.path=='/api/records': return self.reply(200,records(c))
             if self.path=='/api/audit': return self.reply(200,[dict(r) for r in c.execute('SELECT * FROM audit ORDER BY seq')])
@@ -45,11 +50,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(200,d['pdf'],'application/pdf') if d and d['pdf'] else self.reply(404,{'error':'not archived'})
             if self.path not in ('/','/locator-lab'): return self.reply(404,{'error':'not found'})
             rows=''.join(f'<tr><td>{html.escape(r["id"])}</td><td>{html.escape(r["title"])}</td><td>{r["status"]}</td></tr>' for r in records(c))
-            page='''<!doctype html><html><meta charset=utf-8><title>DocumentFlow QA Lab</title><style>body{font:16px system-ui;max-width:850px;margin:40px auto;padding:20px;color:#193553}button,input{padding:9px;margin:5px}table{border-collapse:collapse;width:100%}td,th{padding:12px;border-bottom:1px solid #ddd;text-align:left}</style><h1>DocumentFlow QA Lab</h1><p>Local synthetic print-to-archive workflow</p><label>Document ID <input id="doc-id"></label><label>Title <input id="title"></label><button id="submit">Submit</button><button id="process" data-testid="archive-document">Process</button><p id="message" role="status"></p><table><thead><tr><th>ID</th><th>Title</th><th>Status</th></tr></thead><tbody>'''+rows+'''</tbody></table><script>for(const action of ['submit','process'])document.getElementById(action).onclick=async()=>{const r=await fetch('/api/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:document.getElementById('doc-id').value,title:document.getElementById('title').value})});if(r.ok)location.reload();else document.getElementById('message').textContent=(await r.json()).error;};</script></html>'''
+            page='''<!doctype html><html><meta charset=utf-8><title>DocumentFlow QA Lab</title><style>body{font:16px system-ui;max-width:850px;margin:40px auto;padding:20px;color:#193553}button,input{padding:9px;margin:5px}table{border-collapse:collapse;width:100%}td,th{padding:12px;border-bottom:1px solid #ddd;text-align:left}</style><h1>DocumentFlow QA Lab</h1><p>Local synthetic print-to-archive workflow</p><nav><a href="/records">Records management lab</a></nav><label>Document ID <input id="doc-id"></label><label>Title <input id="title"></label><button id="submit">Submit</button><button id="process" data-testid="archive-document">Process</button><p id="message" role="status"></p><table><thead><tr><th>ID</th><th>Title</th><th>Status</th></tr></thead><tbody>'''+rows+'''</tbody></table><script>for(const action of ['submit','process'])document.getElementById(action).onclick=async()=>{const r=await fetch('/api/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:document.getElementById('doc-id').value,title:document.getElementById('title').value})});if(r.ok)location.reload();else document.getElementById('message').textContent=(await r.json()).error;};</script></html>'''
             if self.path=='/locator-lab':
                 page=page.replace('id="process"','id="archive-v2"').replace("['submit','process']","['submit','archive-v2']").replace("fetch('/api/'+action", "fetch('/api/'+(action==='archive-v2'?'process':action)")
             self.reply(200,page,'text/html; charset=utf-8')
     def do_POST(self):
+        if self.path.startswith('/api/policy/'):
+            with closing(connect()) as c:
+                return records_web.handle_post(self,c)
         try:
             if self.path not in ('/api/submit','/api/process'): return self.reply(404,{'error':'not found'})
             n=int(self.headers.get('Content-Length',0))
