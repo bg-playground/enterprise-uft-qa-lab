@@ -9,7 +9,7 @@ import time
 import unittest
 from pathlib import Path
 
-REQUIREMENTS={'001':['R1'],'002':['R2'],'003':['R3'],'004':['R4'],'005':['R1'],'006':['R4'],'007':['R2'],'008':['R1'],'009':['R1'],'010':['R1'],'011':['R1'],'012':['R5'],'013':['R6'],'014':['R7']}
+REQUIREMENTS={'001':['R1'],'002':['R2'],'003':['R3'],'004':['R4'],'005':['R1'],'006':['R4'],'007':['R2'],'008':['R1'],'009':['R1'],'010':['R1'],'011':['R1'],'012':['R5'],'013':['R6'],'014':['R7'],'015':['R8'],'016':['R5','R6','R8'],'017':['R8'],'018':['R9']}
 class Results(unittest.TextTestResult):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
@@ -28,9 +28,13 @@ class Results(unittest.TextTestResult):
             self.record(test,'failed',self.failed_subtests[test][0])
         super().stopTest(test)
     def record(self,test,outcome,error=None):
+        prior=next((r for r in self.rows if r['external_id']==test.id()),None)
+        if prior:
+            if outcome=='failed': prior.update(outcome='failed',error_message=error.splitlines()[-1] if error else None)
+            return
         match=re.search(r'test_sit_(\d+)',test.id())
         self.rows.append({'external_id':test.id(),'title':test.id(),'outcome':outcome,
-            'duration_ms':max(0,round((time.monotonic()-self.started[test])*1000)),
+            'duration_ms':max(0,round((time.monotonic()-self.started.get(test,time.monotonic()))*1000)),
             'error_message':error.splitlines()[-1] if error else None,
             'requirement_external_ids':REQUIREMENTS.get(match.group(1),[]) if match else [],
             'auto_register_requirements':False})
@@ -61,12 +65,14 @@ def main():
     suite=unittest.defaultTestLoader.discover(args.suite)
     result=unittest.TextTestRunner(verbosity=2,resultclass=Results).run(suite)
     counts={k:sum(r['outcome']==k for r in result.rows) for k in ('passed','failed','skipped')}
-    status='passed' if result.wasSuccessful() and result.testsRun>0 and counts['passed']>0 else 'failed'
+    status='passed' if result.wasSuccessful() and result.testsRun>0 and counts['passed']>0 and len(result.rows)==result.testsRun and counts['failed']==0 else 'failed'
     payload={'format':'offline BGSTM External Results v1 request templates; not ingested',
       'session':{'runner':'documentflow-unittest@0.1','git_sha':os.getenv('GITHUB_SHA'),
       'git_branch':os.getenv('GITHUB_REF_NAME'),'ci_url':('https://github.com/'+os.environ['GITHUB_REPOSITORY']+'/actions/runs/'+os.environ['GITHUB_RUN_ID']) if os.getenv('GITHUB_REPOSITORY') and os.getenv('GITHUB_RUN_ID') else None,
-      'metadata':{'os':platform.platform(),'python':platform.python_version(),'suite':args.suite}},
+      'metadata':{'os':platform.platform(),'python':platform.python_version(),'suite':args.suite,'pr_head_sha':os.getenv('DOCUMENTFLOW_PR_HEAD_SHA')}},
       'cases':result.rows,'finish':{'status':status,'summary':{'total':len(result.rows),**counts}}}
+    from evidence_contract import validate
+    validate(payload)
     out=Path(args.out)
     out.parent.mkdir(parents=True,exist_ok=True)
     out.write_text(json.dumps(payload,indent=2),encoding='utf-8')
