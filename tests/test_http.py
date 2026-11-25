@@ -1,5 +1,7 @@
 """Real loopback HTTP integration with isolated database and shared CSV."""
 import csv
+import io
+from pypdf import PdfReader
 import hashlib
 import json
 import os
@@ -56,6 +58,26 @@ class HttpSIT(unittest.TestCase):
                     self.assertEqual(record['status'],row['expected_status'])
                     self.assertEqual(record['digest'],hashlib.sha256(pdf).hexdigest())
                     self.assertEqual(record['title'],row['title'])
+
+    def test_sit_010_pdf_semantics(self):
+        with (Path(__file__).resolve().parents[1] / 'test-data/lifecycle.csv').open(newline='', encoding='utf-8') as f:
+            for row in csv.DictReader(f):
+                with self.subTest(case=row['case_id']):
+                    id, title = row['document_id'], row['title']
+                    self.assertEqual(self.request('/api/submit', {'id':id,'title':title})[0],200)
+                    self.assertEqual(self.request('/api/process', {'id':id})[0],200)
+                    code, pdf = self.request('/api/pdf/'+id)
+                    self.assertEqual(code,200)
+                    reader = PdfReader(io.BytesIO(pdf), strict=True)
+                    self.assertEqual(len(reader.pages),1)
+                    self.assertFalse(reader.is_encrypted)
+                    self.assertEqual(reader.pages[0].extract_text().splitlines(), ['Synthetic document: '+id, title])
+                    self.assertEqual(reader.metadata.title,title)
+                    self.assertEqual(reader.metadata.author,'DocumentFlow QA Lab')
+                    self.assertEqual(reader.metadata.subject,'Synthetic document '+id)
+                    record = next(r for r in json.loads(self.request('/api/records')[1]) if r['id']==id)
+                    self.assertEqual(record['digest'],hashlib.sha256(pdf).hexdigest())
+                    self.assertEqual(record['title'],title)
 
     def test_sit_006_invalid_requests(self):
         for raw in (b'{}', b'[]', b'{', b'{"id":"DOC1","title":" "}', b'{"id":4}'):

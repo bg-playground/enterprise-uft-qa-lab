@@ -1,6 +1,6 @@
 # KA-001 — CI environment compatibility and runner image drift
 
-Status: corrective candidate; verification pending.
+Status: corrective CI verified; artifact inventory/content inspection pending.
 Observed: 2026-11-25. PR #2, head 2c7109a542f31ab5af7c7265004fb02fc8094172.
 Evidence: [failed run #6](https://github.com/bg-playground/enterprise-uft-qa-lab/actions/runs/45670864079/job/139405420366).
 
@@ -23,3 +23,6 @@ Pin only the browser job to ubuntu-24.04, preserving the portable OS matrix, dep
 
 ## Acceptance and prevention
 Require all four jobs successful, actual browser test execution, retained trace ZIPs and locator screenshot. Review runner and browser dependency compatibility before upgrades. A pinned OS label does not freeze every package in the runner image. Record the new run and exact head when available. No merge or deployment approval implied.
+
+## Corrective evidence
+[Run #8](https://github.com/bg-playground/enterprise-uft-qa-lab/actions/runs/45674374756), exact head ecfb45072b89057578a07a5d732ee5a95552cd8d: all four jobs successful. Browser log reports two tests in 5.388 seconds, OK. [Browser artifact](https://github.com/bg-playground/enterprise-uft-qa-lab/actions/runs/45674374756/artifacts/15050354435) uploaded, 474412 bytes, SHA256 89c27fa7cc4ce4ef62b56944c138ed8ab6bbd5a8e7b196ca6527929e7b940eb5. Individual archive entries not inspected. No native UFT results.

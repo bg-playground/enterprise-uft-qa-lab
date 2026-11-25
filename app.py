@@ -21,7 +21,7 @@ def process(c,id):
         d=c.execute('SELECT * FROM docs WHERE id=?',(id,)).fetchone()
         if d is None: raise KeyError(id)
         if d['status']=='archived': return
-        b=io.BytesIO(); p=canvas.Canvas(b,invariant=1); p.drawString(72,720,'Synthetic document: '+id); p.drawString(72,690,d['title']); p.save(); pdf=b.getvalue()
+        b=io.BytesIO(); p=canvas.Canvas(b,invariant=1); p.setTitle(d['title']); p.setAuthor('DocumentFlow QA Lab'); p.setSubject('Synthetic document '+id); p.drawString(72,720,'Synthetic document: '+id); p.drawString(72,690,d['title']); p.save(); pdf=b.getvalue()
         c.execute('UPDATE docs SET status=?,pdf=?,digest=? WHERE id=?',('archived',pdf,hashlib.sha256(pdf).hexdigest(),id))
         c.execute('INSERT INTO audit(id,event) VALUES(?,?)',(id,'archived'))
 
