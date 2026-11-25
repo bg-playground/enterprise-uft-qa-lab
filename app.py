@@ -1,5 +1,6 @@
 """Local-only synthetic document lifecycle. No real printers or records."""
 import sqlite3, json, html, hashlib, io, os
+from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from reportlab.pdfgen import canvas
 DB=os.environ.get('DOCUMENTFLOW_DB','documentflow.sqlite')
@@ -16,6 +17,7 @@ def submit(c, id, title):
 
 def process(c,id):
     with c:
+        c.execute('BEGIN IMMEDIATE')
         d=c.execute('SELECT * FROM docs WHERE id=?',(id,)).fetchone()
         if d is None: raise KeyError(id)
         if d['status']=='archived': return
@@ -31,7 +33,7 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(body,bytes): body=json.dumps(body).encode() if kind=='application/json' else body.encode()
         self.send_response(status); self.send_header('Content-Type',kind); self.send_header('Content-Length',str(len(body))); self.end_headers(); self.wfile.write(body)
     def do_GET(self):
-        with connect() as c:
+        with closing(connect()) as c:
             if self.path=='/api/records': return self.reply(200,records(c))
             if self.path=='/api/audit': return self.reply(200,[dict(r) for r in c.execute('SELECT * FROM audit ORDER BY seq')])
             if self.path.startswith('/api/pdf/'):
@@ -42,15 +44,20 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(200,'''<!doctype html><html><meta charset=utf-8><title>DocumentFlow QA Lab</title><style>body{font:16px system-ui;max-width:850px;margin:40px auto;padding:20px;color:#193553}button,input{padding:9px;margin:5px}table{border-collapse:collapse;width:100%}td,th{padding:12px;border-bottom:1px solid #ddd;text-align:left}</style><h1>DocumentFlow QA Lab</h1><p>Local synthetic print-to-archive workflow</p><label>Document ID <input id="doc-id"></label><label>Title <input id="title"></label><button id="submit">Submit</button><button id="process">Process</button><p id="message" role="status"></p><table><thead><tr><th>ID</th><th>Title</th><th>Status</th></tr></thead><tbody>'''+rows+'''</tbody></table><script>for(const action of ['submit','process'])document.getElementById(action).onclick=async()=>{const r=await fetch('/api/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:document.getElementById('doc-id').value,title:document.getElementById('title').value})});if(r.ok)location.reload();else document.getElementById('message').textContent=(await r.json()).error;};</script></html>''','text/html; charset=utf-8')
     def do_POST(self):
         try:
-            n=int(self.headers.get('Content-Length',0)); assert 0<n<=8192
-            d=json.loads(self.rfile.read(n)); id=d['id']; title=d.get('title','')
-            if not isinstance(id,str) or not isinstance(title,str) or not id.isalnum() or len(id)>40 or len(title)>120: raise ValueError('invalid input')
-            with connect() as c:
+            if self.path not in ('/api/submit','/api/process'): return self.reply(404,{'error':'not found'})
+            n=int(self.headers.get('Content-Length',0))
+            if not 0<n<=8192: raise ValueError('invalid size')
+            if self.headers.get_content_type()!='application/json': return self.reply(415,{'error':'JSON required'})
+            d=json.loads(self.rfile.read(n))
+            if not isinstance(d,dict) or 'id' not in d: raise ValueError('invalid input')
+            id=d['id']; title=d.get('title','')
+            if not isinstance(id,str) or not isinstance(title,str) or not id.isalnum() or len(id)>40 or len(title)>120 or (self.path=='/api/submit' and not title.strip()): raise ValueError('invalid input')
+            with closing(connect()) as c:
                 if self.path=='/api/submit': submit(c,id,title)
                 elif self.path=='/api/process': process(c,id)
                 else: return self.reply(404,{'error':'not found'})
             self.reply(200,{'ok':True})
         except sqlite3.IntegrityError: self.reply(409,{'error':'duplicate document'})
         except KeyError: self.reply(404,{'error':'missing document or input'})
-        except (ValueError,AssertionError,TypeError): self.reply(400,{'error':'invalid input'})
+        except (ValueError,TypeError,UnicodeError): self.reply(400,{'error':'invalid input'})
 if __name__=='__main__': ThreadingHTTPServer(('127.0.0.1',8000),Handler).serve_forever()
