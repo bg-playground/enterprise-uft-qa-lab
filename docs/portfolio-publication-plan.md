@@ -1,0 +1,3 @@
+# Portfolio publication plan
+Companion article: From SQA Robot to Agentic Testing: What Has Changed — and What Hasn't.
+First-person historical experience with SQA Robot and WinRunner, then modern automation and BGSTM/NAT; confirm personal anecdotes with author before publication. Focus on enduring principles: object recognition, parameterization, synchronization, evidence, maintainability, human judgment. DocumentFlow examples must use verified CI links, distinguish controlled mutations from real failures, and label native UFT preparation separately from execution. Publish only after owner review and separate website/deployment approval.

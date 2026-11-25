@@ -9,7 +9,7 @@ import time
 import unittest
 from pathlib import Path
 
-REQUIREMENTS={'001':['R1'],'002':['R2'],'003':['R3'],'004':['R4'],'005':['R1'],'006':['R4'],'007':['R2'],'008':['R1'],'009':['R1'],'010':['R1'],'011':['R1']}
+REQUIREMENTS={'001':['R1'],'002':['R2'],'003':['R3'],'004':['R4'],'005':['R1'],'006':['R4'],'007':['R2'],'008':['R1'],'009':['R1'],'010':['R1'],'011':['R1'],'012':['R5'],'013':['R6'],'014':['R7']}
 class Results(unittest.TextTestResult):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)

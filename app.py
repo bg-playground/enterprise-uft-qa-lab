@@ -3,10 +3,13 @@ import sqlite3, json, html, hashlib, io, os
 from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from reportlab.pdfgen import canvas
+import record_policy
 DB=os.environ.get('DOCUMENTFLOW_DB','documentflow.sqlite')
 def connect():
     c=sqlite3.connect(DB); c.row_factory=sqlite3.Row
     c.executescript('CREATE TABLE IF NOT EXISTS docs(id TEXT PRIMARY KEY, title TEXT NOT NULL, status TEXT NOT NULL, pdf BLOB, digest TEXT); CREATE TABLE IF NOT EXISTS audit(seq INTEGER PRIMARY KEY, id TEXT, event TEXT);')
+    record_policy.install(c)
+    c.commit()
     return c
 
 def submit(c, id, title):
@@ -21,6 +24,7 @@ def process(c,id):
         d=c.execute('SELECT * FROM docs WHERE id=?',(id,)).fetchone()
         if d is None: raise KeyError(id)
         if d['status']=='archived': return
+        if d['status']=='disposed': raise ValueError('disposed record cannot be reprocessed')
         b=io.BytesIO(); p=canvas.Canvas(b,invariant=1); p.setTitle(d['title']); p.setAuthor('DocumentFlow QA Lab'); p.setSubject('Synthetic document '+id); p.drawString(72,720,'Synthetic document: '+id); p.drawString(72,690,d['title']); p.save(); pdf=b.getvalue()
         c.execute('UPDATE docs SET status=?,pdf=?,digest=? WHERE id=?',('archived',pdf,hashlib.sha256(pdf).hexdigest(),id))
         c.execute('INSERT INTO audit(id,event) VALUES(?,?)',(id,'archived'))
